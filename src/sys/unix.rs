@@ -402,6 +402,27 @@ impl Socket {
         Ok((socket, addr))
     }
 
+    #[allow(unused_mut)]
+    pub fn accept4(&self, flags: i32) -> io::Result<(Socket, SockAddr)> {
+        let mut storage: libc::sockaddr_storage = unsafe { mem::zeroed() };
+        let mut len = mem::size_of_val(&storage) as socklen_t;
+
+        let mut socket = None;
+        let res = syscall!(accept4(
+            self.fd,
+            &mut storage as *mut _ as *mut _,
+            &mut len,
+            libc::SOCK_CLOEXEC | flags,
+        ));
+        match res {
+            Ok(fd) => socket = Some(Socket { fd: fd }),
+            Err(ref e) if e.raw_os_error() == Some(libc::ENOSYS) => {}
+            Err(e) => return Err(e),
+        }
+        let addr = unsafe { SockAddr::from_raw_parts(&storage as *const _ as *const _, len) };
+        Ok((socket.unwrap(), addr))
+    }
+
     pub fn take_error(&self) -> io::Result<Option<io::Error>> {
         unsafe {
             let raw: c_int = self.getsockopt(libc::SOL_SOCKET, libc::SO_ERROR)?;

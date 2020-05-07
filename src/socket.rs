@@ -191,6 +191,17 @@ impl Socket {
             .map(|(socket, addr)| (Socket { inner: socket }, addr))
     }
 
+    /// Accept a new incoming connection from this listener.
+    ///
+    /// This function will block the calling thread until a new connection is
+    /// established. When established, the corresponding `Socket` and the
+    /// remote peer's address will be returned.
+    pub fn accept4(&self, flags: i32) -> io::Result<(Socket, SockAddr)> {
+        self.inner
+            .accept4(flags)
+            .map(|(socket, addr)| (Socket { inner: socket }, addr))
+    }
+
     /// Returns the socket address of the local half of this TCP connection.
     pub fn local_addr(&self) -> io::Result<SockAddr> {
         self.inner.local_addr()
